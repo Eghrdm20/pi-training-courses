@@ -31,3 +31,4 @@
     "autoprefixer": "^10.4.20"
   }
 }
+"@supabase/supabase-js": "^2.56.0"
