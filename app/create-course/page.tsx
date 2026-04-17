@@ -1,0 +1,255 @@
+"use client"
+
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+
+type CachedPiUser = {
+  uid: string
+  username: string
+}
+
+export default function CreateCoursePage() {
+  const router = useRouter()
+
+  const [piUser, setPiUser] = useState<CachedPiUser | null>(null)
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [duration, setDuration] = useState("")
+  const [price, setPrice] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [isFree, setIsFree] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState("")
+
+  useEffect(() => {
+    const cached = window.localStorage.getItem("pi_user")
+
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        if (parsed?.uid && parsed?.username) {
+          setPiUser(parsed)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!piUser) {
+      setStatus("يجب ربط حساب Pi أولًا من صفحة الملف الشخصي")
+      return
+    }
+
+    try {
+      setLoading(true)
+      setStatus("جاري نشر الدورة...")
+
+      const res = await fetch("/api/courses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uid: piUser.uid,
+          username: piUser.username,
+          title,
+          description,
+          duration,
+          price,
+          isFree,
+          imageUrl,
+        }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json?.error || "فشل إنشاء الدورة")
+      }
+
+      setStatus("تم إنشاء الدورة بنجاح")
+
+      setTimeout(() => {
+        router.push("/")
+      }, 1200)
+    } catch (error: any) {
+      console.error(error)
+      setStatus(error?.message || "حدث خطأ أثناء إنشاء الدورة")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f8fafc",
+        direction: "rtl",
+        fontFamily: "Arial, sans-serif",
+        padding: 14,
+      }}
+    >
+      <div style={{ maxWidth: 460, margin: "0 auto" }}>
+        <Link
+          href="/profile"
+          style={{
+            color: "#0f172a",
+            textDecoration: "none",
+            fontSize: 14,
+            display: "inline-block",
+            marginBottom: 12,
+          }}
+        >
+          ← العودة
+        </Link>
+
+        <h1
+          style={{
+            fontSize: 28,
+            fontWeight: 900,
+            margin: "0 0 12px",
+            color: "#0f172a",
+          }}
+        >
+          إنشاء دورة جديدة
+        </h1>
+
+        {!piUser ? (
+          <div
+            style={{
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              padding: 16,
+              fontSize: 15,
+              color: "#475569",
+              lineHeight: 1.8,
+            }}
+          >
+            يجب ربط حساب Pi أولًا من صفحة الملف الشخصي قبل إنشاء دورة.
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              padding: 16,
+              display: "grid",
+              gap: 12,
+            }}
+          >
+            <div style={{ fontSize: 14, color: "#64748b" }}>
+              الناشر: {piUser.username}
+            </div>
+
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="عنوان الدورة"
+              style={inputStyle}
+            />
+
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="وصف الدورة"
+              rows={5}
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
+
+            <input
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              placeholder="مدة الدورة مثال: 6 ساعات"
+              style={inputStyle}
+            />
+
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="رابط صورة الدورة - اختياري"
+              style={inputStyle}
+            />
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 14,
+                color: "#0f172a",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isFree}
+                onChange={(e) => setIsFree(e.target.checked)}
+              />
+              دورة مجانية
+            </label>
+
+            {!isFree ? (
+              <input
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="سعر الدورة بعملة Pi"
+                type="number"
+                step="0.01"
+                min="0"
+                style={inputStyle}
+              />
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                border: "none",
+                background: "#0f172a",
+                color: "white",
+                borderRadius: 14,
+                padding: "12px 16px",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {loading ? "جاري النشر..." : "نشر الدورة"}
+            </button>
+
+            {status ? (
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "#475569",
+                  lineHeight: 1.8,
+                }}
+              >
+                {status}
+              </div>
+            ) : null}
+          </form>
+        )}
+      </div>
+    </main>
+  )
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  border: "1px solid #dbe3ea",
+  borderRadius: 12,
+  padding: "12px 14px",
+  fontSize: 14,
+  outline: "none",
+  background: "white",
+  boxSizing: "border-box",
+              }
