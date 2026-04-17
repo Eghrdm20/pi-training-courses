@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
+import PiPayButton from "@/components/pi-pay-button"
 
 type Course = {
   id: number
@@ -23,6 +24,7 @@ export default function CourseDetailsPage() {
 
   const [course, setCourse] = useState<Course | null>(null)
   const [loading, setLoading] = useState(true)
+  const [paid, setPaid] = useState(false)
 
   useEffect(() => {
     async function loadCourse() {
@@ -117,22 +119,45 @@ export default function CourseDetailsPage() {
               </span>
             </div>
 
-            <button
-              style={{
-                border: "none",
-                background: "#0f172a",
-                color: "white",
-                padding: "11px 16px",
-                borderRadius: 14,
-                fontSize: 15,
-                fontWeight: 800,
-              }}
-            >
-              {course.is_free ? "ابدأ الآن" : "اشترك الآن"}
-            </button>
+            {course.is_free ? (
+              <button
+                style={{
+                  border: "none",
+                  background: "#0f172a",
+                  color: "white",
+                  padding: "11px 16px",
+                  borderRadius: 14,
+                  fontSize: 15,
+                  fontWeight: 800,
+                }}
+              >
+                ابدأ الآن
+              </button>
+            ) : paid ? (
+              <div
+                style={{
+                  background: "#ecfdf5",
+                  border: "1px solid #a7f3d0",
+                  color: "#065f46",
+                  padding: 12,
+                  borderRadius: 14,
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                تم تسجيل الدفع بنجاح. الخطوة التالية هي ربط هذا الدفع بفتح محتوى الدورة.
+              </div>
+            ) : (
+              <PiPayButton
+                amount={Number(course.price ?? 0)}
+                memo={`شراء دورة: ${course.title}`}
+                metadata={{ courseId: course.id }}
+                onPaid={() => setPaid(true)}
+              />
+            )}
           </div>
         </div>
       </div>
     </main>
   )
-        }
+}
